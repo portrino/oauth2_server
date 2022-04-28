@@ -7,6 +7,7 @@ use League\OAuth2\Server\Entities\ClientEntityInterface;
 use League\OAuth2\Server\Repositories\UserRepositoryInterface;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
+use R3H6\Oauth2Server\ApplicationTypeResolverTrait;
 use TYPO3\CMS\Core\Crypto\PasswordHashing\PasswordHashFactory;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Persistence\Generic\Typo3QuerySettings;
@@ -27,6 +28,7 @@ use TYPO3\CMS\Extbase\Persistence\Generic\Typo3QuerySettings;
  */
 class UserRepository extends \TYPO3\CMS\Extbase\Persistence\Repository implements UserRepositoryInterface, LoggerAwareInterface
 {
+    use ApplicationTypeResolverTrait;
     use LoggerAwareTrait;
 
     public function initializeObject()
@@ -35,6 +37,19 @@ class UserRepository extends \TYPO3\CMS\Extbase\Persistence\Repository implement
         $querySettings = $this->objectManager->get(Typo3QuerySettings::class);
         $querySettings->setRespectStoragePage(false);
         $this->setDefaultQuerySettings($querySettings);
+    }
+
+    /**
+     * @param int $uid
+     * @return array|null
+     */
+    public function findByUidRaw($uid)
+    {
+        $query = $this->createQuery();
+        $query->getQuerySettings()->setRespectStoragePage(false);
+        $query->getQuerySettings()->setRespectSysLanguage(false);
+        $query->getQuerySettings()->setLanguageOverlayMode(true);
+        return current($query->matching($query->equals('uid', $uid))->execute(true));
     }
 
     public function getUserEntityByUserCredentials($username, $password, $grantType, ClientEntityInterface $clientEntity)
@@ -46,8 +61,8 @@ class UserRepository extends \TYPO3\CMS\Extbase\Persistence\Repository implement
             throw new \RuntimeException('Username or password invalid', 1607636289929);
         }
 
-        $passwordHashFactory = GeneralUtility::makeInstance(PasswordHashFactory::class);
-        $hashInstance = $passwordHashFactory->getDefaultHashInstance(TYPO3_MODE);
+        $hashInstance = GeneralUtility::makeInstance(PasswordHashFactory::class)
+                                      ->getDefaultHashInstance($this->resolveApplicationType());
         if (!$hashInstance->checkPassword($password, $user->getPassword())) {
             $this->logger->debug('Password check failed', ['username' => $username]);
             throw new \RuntimeException('Username or password invalid', 1607636289929);

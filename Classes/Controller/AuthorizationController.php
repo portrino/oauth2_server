@@ -9,15 +9,15 @@ use Psr\Http\Message\ServerRequestInterface;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
 use R3H6\Oauth2Server\Domain\Model\Client;
+use R3H6\Oauth2Server\Domain\Model\User;
 use R3H6\Oauth2Server\Domain\Repository\AccessTokenRepository;
 use R3H6\Oauth2Server\Domain\Repository\UserRepository;
-use R3H6\Oauth2Server\Http\RequestAttribute;
+use R3H6\Oauth2Server\Domain\Session\SessionStorage;
 use R3H6\Oauth2Server\Mvc\Controller\AuthorizationContext;
 use R3H6\Oauth2Server\Utility\ScopeUtility;
 use TYPO3\CMS\Core\Http\RedirectResponse;
 use TYPO3\CMS\Core\Http\Response;
 use TYPO3\CMS\Core\Routing\RouterInterface;
-use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /***
  *
@@ -30,12 +30,13 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
  *
  ***/
 
- /**
-  * Authorization endpoint
-  */
-class AuthorizationController implements LoggerAwareInterface
+/**
+ * Authorization endpoint
+ */
+class AuthorizationController extends AbstractController implements LoggerAwareInterface
 {
-    public const AUTH_REQUEST_SESSION_KEY = 'oauth2/authRequest';
+
+    public const AUTH_REQUEST_SESSION_KEY = 'AuthRequest';
 
     use LoggerAwareTrait;
 
@@ -54,11 +55,21 @@ class AuthorizationController implements LoggerAwareInterface
      */
     protected $server;
 
-    public function __construct(UserRepository $userRepository, AccessTokenRepository $accessTokenRepository, AuthorizationServer $server)
-    {
+    /**
+     * @var \R3H6\Oauth2Server\Domain\Session\SessionStorage
+     */
+    protected $sessionStorage;
+
+    public function __construct(
+        UserRepository $userRepository,
+        AccessTokenRepository $accessTokenRepository,
+        AuthorizationServer $server,
+        SessionStorage $sessionStorage
+    ) {
         $this->userRepository = $userRepository;
         $this->accessTokenRepository = $accessTokenRepository;
         $this->server = $server;
+        $this->sessionStorage = $sessionStorage;
     }
 
     public function startAuthorization(ServerRequestInterface $request): ResponseInterface
@@ -72,12 +83,14 @@ class AuthorizationController implements LoggerAwareInterface
 
         // Check if user is logged in, if so, add user to authorization request.
         if ($context->isAuthenticated()) {
+            /** @var User $user */
             $user = $this->userRepository->findByUid($context->getFrontendUserUid());
             $this->logger->debug('Set user to authorization request', ['user' => $user]);
             $authRequest->setUser($user);
         }
 
-        $context->getFrontendUser()->setAndSaveSessionData(self::AUTH_REQUEST_SESSION_KEY, $authRequest);
+        $this->sessionStorage->setFeUserAuth($context->getFrontendUser())
+                             ->writeToSession(self::AUTH_REQUEST_SESSION_KEY, $authRequest);
 
         if ($this->requiresAuthentication($context)) {
             return $this->createAuthenticationRedirect($context);
@@ -106,11 +119,10 @@ class AuthorizationController implements LoggerAwareInterface
 
     protected function finishAuthorization(AuthorizationContext $context, bool $approved): ResponseInterface
     {
-        $frontendUser = $context->getFrontendUser();
-
         /** @var \League\OAuth2\Server\RequestTypes\AuthorizationRequest|null */
-        $authRequest = $frontendUser->getSessionData(self::AUTH_REQUEST_SESSION_KEY);
-        $frontendUser->setAndSaveSessionData(self::AUTH_REQUEST_SESSION_KEY, null);
+        $authRequest = $this->sessionStorage->setFeUserAuth($context->getFrontendUser())
+                                            ->restoreFromSession(self::AUTH_REQUEST_SESSION_KEY);
+        $this->sessionStorage->cleanUpSession(self::AUTH_REQUEST_SESSION_KEY);
 
         if ($authRequest === null) {
             throw new \RuntimeException('Try to approve authorization without starting it', 1614192910231);
@@ -123,16 +135,6 @@ class AuthorizationController implements LoggerAwareInterface
         $authRequest->setAuthorizationApproved($approved);
 
         return $this->server->completeAuthorizationRequest($authRequest, new Response());
-    }
-
-    protected function createContext(ServerRequestInterface $request): AuthorizationContext
-    {
-        $context = GeneralUtility::makeInstance(AuthorizationContext::class);
-        $context->setRequest($request);
-        $context->setSite($request->getAttribute('site'));
-        $context->setFrontendUser($request->getAttribute('frontend.user'));
-        $context->setConfiguration($request->getAttribute(RequestAttribute::CONFIGURATION));
-        return $context;
     }
 
     protected function requiresAuthentication(AuthorizationContext $context): bool
@@ -148,7 +150,12 @@ class AuthorizationController implements LoggerAwareInterface
         $client = $authRequest->getClient();
         $scopes = ScopeUtility::toStrings(...$authRequest->getScopes());
 
-        if ($user && $this->accessTokenRepository->hasValidAccessToken($user->getIdentifier(), $client->getIdentifier(), $scopes)) {
+        if ($user
+            && $this->accessTokenRepository->hasValidAccessToken(
+                $user->getIdentifier(), $client->getIdentifier(),
+                $scopes
+            )
+        ) {
             $this->logger->debug('Does not require consent because of valid access token');
             return false;
         }
@@ -167,7 +174,8 @@ class AuthorizationController implements LoggerAwareInterface
         $parameters = ['redirect_url' => $selfUrl];
         $loginPageUid = $context->getConfiguration()->getLoginPageUid();
         if ($loginPageUid) {
-            $forwardUrl = (string)$context->getSite()->getRouter()->generateUri((string)$loginPageUid, $parameters, '', RouterInterface::ABSOLUTE_URL);
+            $forwardUrl = (string)$context->getSite()->getRouter()->generateUri((string)$loginPageUid, $parameters, '',
+                RouterInterface::ABSOLUTE_URL);
             return new RedirectResponse($forwardUrl);
         }
 
@@ -178,7 +186,8 @@ class AuthorizationController implements LoggerAwareInterface
     {
         $this->logger->debug('Forward to consent');
         $consentPageUid = $context->getConfiguration()->getConsentPageUid();
-        $forwardUrl = (string)$context->getSite()->getRouter()->generateUri((string)$consentPageUid, [], '', RouterInterface::ABSOLUTE_URL);
+        $forwardUrl = (string)$context->getSite()->getRouter()->generateUri((string)$consentPageUid, [], '',
+            RouterInterface::ABSOLUTE_URL);
         return new RedirectResponse($forwardUrl);
     }
 }

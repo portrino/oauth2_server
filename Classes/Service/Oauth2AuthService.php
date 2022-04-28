@@ -40,7 +40,7 @@ class Oauth2AuthService extends AbstractAuthenticationService
         $user = false;
         $request = $this->getRequest();
 
-        if ($request == null) {
+        if ($request === null) {
             return $user;
         }
 

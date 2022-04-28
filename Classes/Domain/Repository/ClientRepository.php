@@ -6,6 +6,7 @@ namespace R3H6\Oauth2Server\Domain\Repository;
 use League\OAuth2\Server\Repositories\ClientRepositoryInterface;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
+use R3H6\Oauth2Server\ApplicationTypeResolverTrait;
 use TYPO3\CMS\Core\Crypto\PasswordHashing\PasswordHashFactory;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Persistence\Generic\Typo3QuerySettings;
@@ -26,6 +27,7 @@ use TYPO3\CMS\Extbase\Persistence\Generic\Typo3QuerySettings;
  */
 class ClientRepository extends \TYPO3\CMS\Extbase\Persistence\Repository implements ClientRepositoryInterface, LoggerAwareInterface
 {
+    use ApplicationTypeResolverTrait;
     use LoggerAwareTrait;
 
     public function initializeObject()
@@ -55,8 +57,8 @@ class ClientRepository extends \TYPO3\CMS\Extbase\Persistence\Repository impleme
             return false;
         }
 
-        $passwordHashFactory = GeneralUtility::makeInstance(PasswordHashFactory::class);
-        $hashInstance = $passwordHashFactory->getDefaultHashInstance(TYPO3_MODE);
+        $hashInstance = GeneralUtility::makeInstance(PasswordHashFactory::class)
+                                      ->getDefaultHashInstance($this->resolveApplicationType());
         return $hashInstance->checkPassword($clientSecret, $client->getSecret());
     }
 }

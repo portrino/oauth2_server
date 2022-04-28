@@ -26,6 +26,9 @@ services:
   R3H6\Oauth2Server\Domain\Bridge\RequestEvent:
     public: true
 
+  R3H6\Oauth2Server\Domain\Session\SessionStorage:
+    public: true
+
   League\OAuth2\Server\AuthorizationServer:
     factory: '@R3H6\Oauth2Server\Domain\Factory\AuthorizationServerFactoryInterface'
     public: true

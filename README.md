@@ -82,6 +82,11 @@ oauth2:
     - scope1
     - { identifier: scope2, description: 'Description or LLL path', consent: true }
 
+  # User Info endpoint property name mapping for allowed/ requestable user fields [ columnPropertyName => outputPropertyName ]
+  # Type: array
+  userinfoAllowedPropertiesMapping:
+    some_fe_users_column_name: 'jsonPropertyName'
+
   # Configuration for protected resources
   resources:
 

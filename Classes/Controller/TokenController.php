@@ -36,6 +36,9 @@ class TokenController
 
     public function issueAccessToken(ServerRequestInterface $request): ResponseInterface
     {
+        if ($GLOBALS['TYPO3_REQUEST'] === null) {
+            $GLOBALS['TYPO3_REQUEST'] = $request;
+        }
         return $this->server->respondToAccessTokenRequest($request, new Response());
     }
 }

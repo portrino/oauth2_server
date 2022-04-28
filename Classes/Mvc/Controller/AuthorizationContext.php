@@ -45,47 +45,47 @@ class AuthorizationContext
         return $this->request;
     }
 
-    public function setRequest(ServerRequestInterface $request)
+    public function setRequest(ServerRequestInterface $request): void
     {
         $this->request = $request;
     }
 
-    public function getAuthRequest(): AuthorizationRequest
+    public function getAuthRequest(): ?AuthorizationRequest
     {
         return $this->authRequest;
     }
 
-    public function setAuthRequest(AuthorizationRequest $authRequest)
+    public function setAuthRequest(AuthorizationRequest $authRequest): void
     {
         $this->authRequest = $authRequest;
     }
 
-    public function getConfiguration(): Configuration
+    public function getConfiguration(): ?Configuration
     {
         return $this->configuration;
     }
 
-    public function setConfiguration(Configuration $configuration)
+    public function setConfiguration(Configuration $configuration): void
     {
         $this->configuration = $configuration;
     }
 
-    public function getFrontendUser(): FrontendUserAuthentication
+    public function getFrontendUser(): ?FrontendUserAuthentication
     {
         return $this->frontendUser;
     }
 
-    public function setFrontendUser(FrontendUserAuthentication $frontendUser)
+    public function setFrontendUser(FrontendUserAuthentication $frontendUser): void
     {
         $this->frontendUser = $frontendUser;
     }
 
-    public function getSite(): Site
+    public function getSite(): ?Site
     {
         return $this->site;
     }
 
-    public function setSite(Site $site)
+    public function setSite(Site $site): void
     {
         $this->site = $site;
     }

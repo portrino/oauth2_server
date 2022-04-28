@@ -5,6 +5,7 @@ namespace R3H6\Oauth2Server\Controller;
 
 use League\OAuth2\Server\RequestTypes\AuthorizationRequest;
 use R3H6\Oauth2Server\Configuration\Configuration;
+use R3H6\Oauth2Server\Domain\Session\SessionStorage;
 use TYPO3\CMS\Core\Context\Context;
 use TYPO3\CMS\Core\Error\Http\ForbiddenException;
 use TYPO3\CMS\Core\Error\Http\PageNotFoundException;
@@ -36,6 +37,11 @@ class ConsentController extends ActionController
      */
     protected $configuration;
 
+    /**
+     * @var SessionStorage
+     */
+    protected $sessionStorage;
+
     public function showAction()
     {
         $authRequest = $this->getAuthRequestOrFail();
@@ -51,7 +57,7 @@ class ConsentController extends ActionController
         }
 
         /** @var \League\OAuth2\Server\RequestTypes\AuthorizationRequest */
-        $authRequest = $GLOBALS['TSFE']->fe_user->getSessionData(AuthorizationController::AUTH_REQUEST_SESSION_KEY);
+        $authRequest = $this->sessionStorage->restoreFromSession(AuthorizationController::AUTH_REQUEST_SESSION_KEY);
 
         if (!$authRequest instanceof AuthorizationRequest) {
             throw new PageNotFoundException();
@@ -67,5 +73,10 @@ class ConsentController extends ActionController
     public function injectConfiguration(Configuration $configuration): void
     {
         $this->configuration = $configuration;
+    }
+
+    public function injectSessionStorage(SessionStorage $sessionStorage): void
+    {
+        $this->sessionStorage = $sessionStorage;
     }
 }

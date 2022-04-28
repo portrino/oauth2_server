@@ -6,6 +6,7 @@ namespace R3H6\Oauth2Server\Configuration;
 use R3H6\Oauth2Server\Controller\AuthorizationController;
 use R3H6\Oauth2Server\Controller\RevokeController;
 use R3H6\Oauth2Server\Controller\TokenController;
+use R3H6\Oauth2Server\Controller\UserInfoController;
 use TYPO3\CMS\Core\SingletonInterface;
 use TYPO3\CMS\Core\Utility\ArrayUtility;
 
@@ -38,6 +39,22 @@ class Configuration implements \ArrayAccess, SingletonInterface
         'consentPageUid' => 0,
         'loginPageUid' => 0,
         'scopes' => [],
+        'userinfoAllowedPropertiesMapping' => [
+            'username' => 'username',
+            'name' => 'displayName',
+            'first_name' => 'firstName',
+            'middle_name' => 'middleName',
+            'last_name' => 'lastName',
+            'address' => 'address',
+            'telephone' => 'telephone',
+            'fax' => 'fax',
+            'email' => 'email',
+            'title' => 'title',
+            'zip' => 'zip',
+            'city' => 'city',
+            'country' => 'country',
+            'company' => 'company'
+        ],
         'resources' => [],
         'endpoints' => [
             'oauth2_authorize' => [
@@ -67,6 +84,12 @@ class Configuration implements \ArrayAccess, SingletonInterface
             'oauth2_revoke' => [
                 'path' => '/revoke',
                 'target' => RevokeController::class . '::revokeAccessToken',
+            ],
+            'oauth2_user_info' => [
+                'path' => '/userinfo',
+                'target' => UserInfoController::class . '::show',
+//                'authorization' => false,
+                'methods' => ['GET']
             ],
         ],
     ];
@@ -125,9 +148,15 @@ class Configuration implements \ArrayAccess, SingletonInterface
     {
         return self::$configuration['endpoints'];
     }
+
     public function getScopes(): array
     {
         return self::$configuration['scopes'];
+    }
+
+    public function getUserinfoAllowedPropertiesMapping(): array
+    {
+        return self::$configuration['userinfoAllowedPropertiesMapping'];
     }
 
     public function merge(array $overrideConfiguration): void

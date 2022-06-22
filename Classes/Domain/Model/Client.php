@@ -5,6 +5,7 @@ namespace R3H6\Oauth2Server\Domain\Model;
 
 use League\OAuth2\Server\Entities\ClientEntityInterface;
 use League\OAuth2\Server\Entities\Traits\EntityTrait;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /***
  *
@@ -159,7 +160,7 @@ class Client extends \TYPO3\CMS\Extbase\DomainObject\AbstractEntity implements C
      */
     public function getRedirectUri()
     {
-        return $this->redirectUri;
+        return GeneralUtility::trimExplode(chr(10), $this->redirectUri, true);
     }
 
     /**

@@ -89,7 +89,11 @@ class UserInfoController extends AbstractController
 
 
         $requestParams = $request->getQueryParams();
-        $requestedProperties = GeneralUtility::trimExplode(',', $requestParams['properties'], true);
+        $requestedProperties = GeneralUtility::trimExplode(
+            ',',
+            $requestParams['properties'] ?? $requestParams['fields'] ?? '',
+            true
+        );
 
         $responseParams['identifier'] = $user['uid'];
         $responseParams['uid'] = $user['uid'];

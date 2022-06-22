@@ -64,9 +64,8 @@ class CreateClientSecretHook
 
     protected function addFlashMessage($message, $title = '', $severity = FlashMessage::INFO)
     {
-        $message = GeneralUtility::makeInstance(FlashMessage::class, $message, $title, $severity);
-
-        $messageQueue = $this->flashMessageService->getMessageQueueByIdentifier();
-        $messageQueue->addMessage($message);
+        $this->flashMessageService->getMessageQueueByIdentifier()->enqueue(
+            GeneralUtility::makeInstance(FlashMessage::class, $message, $title, $severity, true)
+        );
     }
 }

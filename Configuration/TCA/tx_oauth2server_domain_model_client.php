@@ -167,9 +167,11 @@ return [
             'exclude' => false,
             'label' => 'LLL:EXT:oauth2_server/Resources/Private/Language/locallang_db.xlf:tx_oauth2server_domain_model_client.redirect_uri',
             'config' => [
-                'type' => 'input',
-                'size' => 30,
-                'eval' => 'trim'
+                'type' => 'text',
+                'cols' => 40,
+                'rows' => 15,
+                'eval' => 'trim',
+                'fixedFont' => true,
             ]
         ],
         'is_confidential' => [
